@@ -5,6 +5,7 @@ from IPython.display import JSON
 import json
 import re
 import chromadb
+import tempfile
 import streamlit as st
 from chromadb.config import Settings
 from unstructured_client import UnstructuredClient
@@ -13,24 +14,20 @@ from unstructured_client.models.errors import SDKError
 from transformers import pipeline
 from unstructured.staging.base import dict_to_elements, elements_to_json
 from unstructured.chunking.title import chunk_by_title
-chromadb_directory = '/content/drive/MyDrive/Colab Notebooks/ChromaDB'
-# myHFToken = "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"
-# from huggingface_hub import login
-# login(token=myHFToken)
-
+# chromadb_directory = '/content/drive/MyDrive/Colab Notebooks/ChromaDB'
 selectedLLM = "distilbert/distilgpt2"
 # selectedLLM = "google/gemma-2-9b-it"
 pipe = pipeline("text-generation", model=selectedLLM)
 # Create the directory if it doesn't exist
-import os
-if not os.path.exists(chromadb_directory):
-    os.makedirs(chromadb_directory)
+# import os
+# if not os.path.exists(chromadb_directory):
+#     os.makedirs(chromadb_directory)
 
 client  = UnstructuredClient(
     api_key_auth="KjDBcb5Ji110UwlrnoZNjKD6uRvutV"
 )
 chapter_ids = {}
-chromaClient = chromadb.PersistentClient(path=chromadb_directory , settings=chromadb.Settings(allow_reset=True))
+chromaClient = chromadb.Client(settings=chromadb.Settings(allow_reset=True))
 
 def open_saved_pdf(filename):
 
@@ -168,23 +165,26 @@ def postprocess_text(text):
 # st.title("Bot for answering questions from your literature")
 # # Define the GUI here using streamlit
 # st.title("Bot for answering questions from your literature")
-st.header("Ask questions from your literature", anchor=None, help=None, divider=True)
+st.header("Ask questions from your literature - 1", anchor=None, help=None, divider=True)
 uploaded_files = st.file_uploader("Choose PDF files", accept_multiple_files=True)
 if uploaded_files is not None:
   # st.button("Upload Literature", type="primary")
   if st.button("Upload Literature"):
      for uploaded_file in uploaded_files:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+            temp_file.write(uploaded_file.read())
+            temp_file_path = temp_file.name
       # bytes_data = uploaded_file.read()
       # open_saved_pdf(uploaded_file.name)
-        temp_dir = "/content/sample_data"
-        # Save the uploaded file to the temporary directory
-        with open(os.path.join(temp_dir, uploaded_file.name), "wb") as f:
-          f.write(uploaded_file.read())
-          # Display the uploaded file path
-          uploaded_file_path = os.path.join(temp_dir, uploaded_file.name)
+        # temp_dir = "/content/sample_data"
+        # # Save the uploaded file to the temporary directory
+        # with open(os.path.join(temp_dir, uploaded_file.name), "wb") as f:
+        #   f.write(uploaded_file.read())
+        #   # Display the uploaded file path
+        #   uploaded_file_path = os.path.join(temp_dir, uploaded_file.name)
           # st.write(f"Uploaded file path: {uploaded_file_path}")
-          with st.spinner('Uploading, Chuncking and Storing...'):
-            open_saved_pdf(uploaded_file_path)
+        with st.spinner('Uploading, Chuncking and Storing...'):
+            open_saved_pdf(temp_file_path)
         
 # Initialize chat history
 if "messages" not in st.session_state:
